@@ -1,0 +1,287 @@
+const Items = [
+
+ {
+
+  id: "item1",
+
+  itemName: "Butter Roti",
+
+  rate: 20,
+
+  taxes: [
+
+   { name: "Service Charge", rate: 10, isInPercent: "Y" }
+
+  ],
+
+  category: { categoryId: "C2" }
+
+ },
+
+ {
+
+  id: "item2",
+
+  itemName: "Paneer Butter Masala",
+
+  rate: 150,
+
+  taxes: [
+
+   { name: "GST", rate: 5, isInPercent: "Y" },
+
+   { name: "Fixed Env. Fee", rate: 2, isInPercent: "N" }
+
+  ],
+
+  category: { categoryId: "C1" }
+
+ },
+
+ 
+
+];
+
+
+
+const Categories = [
+
+ {
+
+  id: "C1",
+
+  categoryName: "Curries",
+
+  superCategory: { superCategoryName: "North Indian", id: "SC1" }
+
+ },
+
+ {
+
+  id: "C2",
+
+  categoryName: "Breads",
+
+  superCategory: { superCategoryName: "South Indian", id: "SC2" }
+
+ },
+
+
+];
+
+
+
+const bill = {
+
+ id: "B1",
+
+ billNumber: 1,
+
+ opentime: "06 Nov 2020 14:19",
+
+ customerName: "CodeQuotient",
+
+ billItems: [
+
+  {
+
+   id: "item2",
+
+   quantity: 3,
+
+   discount: { rate: 10, isInPercent: "Y" }
+
+  },
+
+  {
+
+   id: "item1",
+
+   quantity: 2,
+
+   discount: { rate: 5, isInPercent: "N" }
+
+  }
+
+ ]
+
+};
+
+
+
+
+
+
+
+function getBillSummary(bill, items) {
+
+ return {
+
+  id: bill.id,
+
+  billNumber: bill.billNumber,
+
+  opentime: bill.opentime,
+
+  customerName: bill.customerName,
+
+  billItems: bill.billItems.map(bi => {
+
+   const item = items.find(i => i.id === bi.id);
+
+   return {
+
+    id: bi.id,
+
+    name: item?.itemName ?? "Unknown Item",
+
+    quantity: bi.quantity
+
+   };
+
+  })
+
+ };
+
+}
+
+
+
+
+
+function getBillDetails(bill, items, categories) {
+
+ let grandTotal = 0;
+
+
+
+ const detailedItems = bill.billItems.map(bi => {
+
+  const item = items.find(i => i.id === bi.id);
+
+  if (!item) throw new Error(`Item ${bi.id} not found`);
+
+
+
+
+  const base = item.rate * bi.quantity;
+
+
+
+ 
+
+  let discountAmt = 0;
+
+  if (bi.discount) {
+
+   discountAmt =
+
+    bi.discount.isInPercent === "Y"
+
+     ? (base * bi.discount.rate) / 100
+
+     : bi.discount.rate;
+
+  }
+
+
+
+
+
+  const taxable = base - discountAmt;
+
+
+
+  
+
+  const taxes = item.taxes.map(t => {
+
+   const amt =
+
+    t.isInPercent === "Y"
+
+     ? (taxable * t.rate) / 100
+
+     : t.rate * bi.quantity;
+
+   return { ...t, amount: parseFloat(amt.toFixed(2)) };
+
+  });
+
+
+
+  const taxTotal = taxes.reduce((sum, t) => sum + t.amount, 0);
+
+
+
+
+
+  const amount = parseFloat((taxable + taxTotal).toFixed(2));
+
+  grandTotal += amount;
+
+
+
+
+  const cat = categories.find(c => c.id === item.category.categoryId);
+
+  const categoryName = cat?.categoryName ?? "";
+
+  const superCategoryName = cat?.superCategory?.superCategoryName ?? "";
+
+
+
+  return {
+
+   id: item.id,
+
+   name: item.itemName,
+
+   quantity: bi.quantity,
+
+   discount: bi.discount,
+
+   taxes: taxes.map(t => ({ name: t.name, rate: t.rate, isInPercent: t.isInPercent })),
+
+   amount,
+
+   categoryName,
+
+   superCategoryName
+
+  };
+
+ });
+
+
+
+ return {
+
+  id: bill.id,
+
+  billNumber: bill.billNumber,
+
+  opentime: bill.opentime,
+
+  customerName: bill.customerName,
+
+  billItems: detailedItems,
+
+  totalAmount: parseFloat(grandTotal.toFixed(2))
+
+ };
+
+}
+
+
+
+
+console.log("=== Summary ===");
+
+console.log(JSON.stringify(getBillSummary(bill, Items), null, 2));
+
+
+
+console.log("\n=== Details ===");
+
+console.log(JSON.stringify(getBillDetails(bill, Items, Categories), null, 2));
